@@ -2,15 +2,16 @@ import argparse
 import os
 import random
 import re
+import time
 
 import cv2
 import imutils
 import pytesseract
 from pqdm.processes import pqdm
 
-show_gui = False
+show_gui = True
 
-yolo_format = True
+yolo_format = False
 
 
 # load the video
@@ -51,8 +52,12 @@ def process_video(video_file_path):
             cv2.imshow("Tracking", frame)
     
     # cleanup the camera and close any open windows
-    camera.release()
-    cv2.destroyAllWindows()
+    if show_gui:
+        while cv2.waitKey(5) & 0xFF != ord(" "):
+            continue
+
+        camera.release()
+        cv2.destroyAllWindows()
 
 
 def analyze_frame(frame, ysv_range, orig_height, orig_width, video_file_path, show_gui):
@@ -90,19 +95,77 @@ def analyze_frame(frame, ysv_range, orig_height, orig_width, video_file_path, sh
             continue
 
         # convert from x,y,w,h to lt,rb
-        margin = 0
         roi = [[rect[0], rect[1]], [rect[0] + rect[2], rect[1] + rect[3]]]
-        roi_img = frame[roi[0][1] - margin:roi[1][1] + margin, roi[0][0] - margin:roi[1][0] + margin].copy()
+        roi_img = frame[roi[0][1]:roi[1][1], roi[0][0]:roi[1][0]]
         if show_gui:
             cv2.rectangle(frame, roi[0], roi[1], (0, 255, 255), 4)
-            cv2.imshow("Thres", frame[roi[0][1]:roi[1][1], roi[0][0]:roi[1][0]])
+            cv2.imshow("roi",roi_img)
 
-        config = ("-l eng --oem 1 --psm 11")
-        text_found = pytesseract.image_to_string(roi_img, config=config)
-        text_found = re.sub('\\D', '', text_found)
+        start = time.thread_time()
+        if False:
+            roi_img_gray = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
+            _, roi_thresh = cv2.threshold(roi_img_gray, 128, 255, cv2.THRESH_BINARY_INV)
 
+            numbers = imutils.grab_contours(cv2.findContours(roi_thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE))
+            numbers = sorted(numbers, key=cv2.contourArea, reverse=True)
+
+            if len(numbers) < 2:
+                continue
+
+            if show_gui:
+                cv2.imshow('roi thresh', roi_thresh)
+
+            ca = cv2.contourArea(numbers[0])
+            while ca > 0.5 * rect[2] * rect[3]:
+                numbers = numbers[1:]
+                ca = cv2.contourArea(numbers[0])
+
+            if len(numbers) < 2:
+                continue
+
+
+            ca = cv2.contourArea(numbers[1])
+            if ca < 0.05 * rect[2] * rect[3]:
+                continue
+
+            if min(numbers[0][:,0,0]) < min(numbers[1][:,0,0]):
+                left_roi = cv2.boundingRect(numbers[0])
+                right_roi = cv2.boundingRect(numbers[1])
+            else:
+                left_roi = cv2.boundingRect(numbers[1])
+                right_roi = cv2.boundingRect(numbers[0])
+
+            # print(left_roi, right_roi)
+            left_roi = [[left_roi[0], left_roi[1]], [left_roi[0] + left_roi[2], left_roi[1] + left_roi[3]]]
+            right_roi = [[right_roi[0], right_roi[1]], [right_roi[0] + right_roi[2], right_roi[1] + right_roi[3]]]
+
+            margin = 6
+            left_image = roi_thresh[left_roi[0][1]-margin:left_roi[1][1]+margin, left_roi[0][0]-1:left_roi[1][0]+margin]
+            right_image = roi_thresh[right_roi[0][1]-margin:right_roi[1][1]+margin, right_roi[0][0]-1:right_roi[1][0]+margin]
+
+            if show_gui:
+                cv2.imshow('li', left_image)
+                cv2.imshow('ri', right_image)
+                # while cv2.waitKey(5) & 0xFF != ord(" "):
+                #     continue
+
+            config = ("-l eng --oem 1 --psm 10")
+
+            left_text_found = pytesseract.image_to_string(left_image, config=config)
+            left_text_found = re.sub('\\D', '', left_text_found)
+
+            right_text_found = pytesseract.image_to_string(right_image, config=config)
+            right_text_found = re.sub('\\D', '', right_text_found)
+
+            text_found = left_text_found + right_text_found
+        else:
+            config = ("-l eng --oem 1 --psm 11")
+            text_found = pytesseract.image_to_string(roi_img, config=config)
+            text_found = re.sub('\\D', '', text_found)
+
+        print(f'time: {time.thread_time() - start}')
         if text_found != '':
-            # print("text->" + text_found + "<-")
+            print("text->" + text_found + "<-")
             speed = int(text_found)
             if speed % 5 == 0:
                 if yolo_format:
@@ -141,8 +204,8 @@ if __name__ == '__main__':
     args = vars(ap.parse_args())
     video_paths = args["video"]
 
-    show_gui = len(video_paths) == 1
-
-    # Parallel(n_jobs=-1)(delayed(process_video)(video_file_path) for video_file_path in tqdm.tqdm(video_paths))
-    # process_video(video_paths[0])
-    pqdm(video_paths, process_video, n_jobs=10)
+    if len(video_paths) == 1:
+        show_gui = False
+        process_video(video_paths[0])
+    else:
+        pqdm(video_paths, process_video, n_jobs=10)
