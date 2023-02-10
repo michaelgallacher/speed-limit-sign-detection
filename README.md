@@ -1,6 +1,8 @@
 # speed-limit-sign-detection
 [![CircleCI](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection.svg?style=shield)](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection)
 
+![demo](./example/demo.gif)
+
 ## Overview
 I was driving one afternoon when I noticed my phone notifying me I was over the posted speed limit.  I got curious about how hard it would be gather this information on a large scale.
 
