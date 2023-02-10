@@ -1,4 +1,5 @@
 # speed-limit-sign-detection
+[![CircleCI](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection.svg?style=shield)](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection)
 
 ## Overview
 I was driving one afternoon when I noticed my phone notifying me I was over the posted speed limit.  I got curious about how hard it would be gather this information on a large scale.
@@ -22,6 +23,3 @@ From there, you manually remove incorrectly labeled images. The format of the fi
 ```
 track.py -v ./example/*.mp4
 ```
-
-[![CircleCI](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection.svg?style=svg)]
-(https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection)
