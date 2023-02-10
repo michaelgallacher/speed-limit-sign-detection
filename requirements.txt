@@ -1,4 +1,5 @@
 pip
+pytest
 imutils>=0.5.4
 pytesseract>=0.3.10
 pqdm~=0.2.0
