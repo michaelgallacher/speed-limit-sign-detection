@@ -1,15 +1,8 @@
-import argparse
-from hashlib import new
 from os import path, rename
-import random
-import re
 import glob
-import cv2
-import imutils
-import pytesseract
-from pqdm.processes import pqdm
 
-
+# Takes a set of images and renames them (and their associated label file) to
+# a simple numbering scheme starting with 00001.jpg
 if __name__ == '__main__':
     img_files = glob.glob('images/*.jpg')
     count = 1
