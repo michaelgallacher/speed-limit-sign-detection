@@ -22,3 +22,6 @@ From there, you manually remove incorrectly labeled images. The format of the fi
 ```
 track.py -v ./example/*.mp4
 ```
+
+[![CircleCI](https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection.svg?style=svg)]
+(https://circleci.com/gh/michaelgallacher/speed-limit-sign-detection)
